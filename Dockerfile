@@ -12,13 +12,14 @@ WORKDIR /app
 
 ENV UV_LINK_MODE=copy
 
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
+ENV PATH="$UV_PROJECT_ENVIRONMENT/bin:$PATH"
+
 COPY pyproject.toml /app/
 COPY uv.lock /app/
 RUN uv sync --frozen
 
 COPY . /app/
-
-ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8000
 
