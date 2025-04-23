@@ -8,8 +8,8 @@ from ninja import NinjaAPI
 from ninja.security import HttpBearer
 
 from .models import User
-from .schemas import UserInput, AuthResponse
-from .utils import encode_jwt, decode_jwt
+from .schemas import UserInput, AuthResponse, RefreshInput, RefreshResponse
+from .utils import decode_jwt, create_tokens
 
 
 class AuthBearer(HttpBearer):
@@ -51,9 +51,25 @@ def login_view(request, payload: UserInput):
     user = authenticate(request, email=payload.email, password=payload.password)
     if not user:
         return {"error": "Invalid credentials"}
+    if not user.is_active:
+        return {"error": "Account is not active"}
 
-    token = encode_jwt(user.email)
-    return {"token": token, "email": user.email}
+    tokens = create_tokens(user.email)
+    return {
+        "access_token": tokens["access_token"],
+        "refresh_token": tokens["refresh_token"],
+        "email": user.email,
+    }
+
+
+@api.post("/refresh_token", response=RefreshResponse)
+def refresh_token(request, data: RefreshInput):
+    payload = decode_jwt(data.refresh_token)
+    if not payload:
+        return {"error": "Invalid or expired token"}
+
+    user = User.objects.get(email=payload["email"])
+    return create_tokens(user.email)
 
 
 @api.get("/profile", auth=AuthBearer())
