@@ -1,5 +1,6 @@
 services:
   web:
+    container_name: 'app'
     build: .
     volumes:
       - .:/app
@@ -10,17 +11,19 @@ services:
       - .env
     depends_on:
       - db
+      - mailhog
     develop:
       # https://docs.docker.com/compose/file-watch/#compose-watch-versus-bind-mounts
       watch:
-        - action: sync
-          path: .
-          target: /app
+        # - action: sync
+        #   path: .
+        #   target: /app
         - action: rebuild
-          path: ./uv.lock
+          path: uv.lock
 
   db:
     image: postgres:15
+    container_name: 'django-db'
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
@@ -29,6 +32,15 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: 'mailhog'
+    logging:
+      driver: 'none'
+    ports:
+      - "1025:1025"
+      - "8025:8025"
 
 volumes:
   postgres_data:
