@@ -17,7 +17,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM python:3.12-slim-bookworm
 
-COPY --from=builder --chown=app:app /app /app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 ENV PATH="/app/venv/bin:$PATH"
 
-CMD ["python", "app/manage.py", "runserver", "0.0.0.0:8000"]
+RUN groupadd -r app && useradd -r -g app app
+
+COPY --from=builder --chown=app:app /app /app
+
+USER app
+CMD ["python", "-u", "app/manage.py", "runserver", "0.0.0.0:8000"]
