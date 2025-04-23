@@ -2,9 +2,6 @@ services:
   web:
     container_name: 'app'
     build: .
-    volumes:
-      - .:/app
-      - venv_data:/opt/venv
     ports:
       - "8000:8000"
     env_file:
@@ -13,11 +10,12 @@ services:
       - db
       - mailhog
     develop:
-      # https://docs.docker.com/compose/file-watch/#compose-watch-versus-bind-mounts
       watch:
-        # - action: sync
-        #   path: .
-        #   target: /app
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - .venv/
         - action: rebuild
           path: uv.lock
 
@@ -44,4 +42,3 @@ services:
 
 volumes:
   postgres_data:
-  venv_data:
