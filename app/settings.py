@@ -11,7 +11,7 @@ DEBUG = getenv("DJANGO_DEBUG")
 ALLOWED_HOSTS = []
 
 
-# Application definition
+AUTH_USER_MODEL = "users.User"
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -20,6 +20,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "ninja",
+    "users",
 ]
 
 MIDDLEWARE = [
@@ -107,3 +109,18 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# PyJWT
+
+JWT_SECRET = getenv("DJANGO_SECRET_KEY")
+JWT_ALGORITHM = "HS256"
+JWT_EXP_TIME = 30 * 60
+
+# MailHog
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = getenv("EMAIL_HOST")
+EMAIL_PORT = getenv("EMAIL_PORT")
+DEFAULT_FROM_EMAIL = "noreply@test.com"
+PASSWORD_RESET_TIMEOUT = 6 * 60 * 60
