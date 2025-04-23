@@ -1,26 +1,25 @@
-FROM python:3.13-slim-bookworm
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates
-ADD https://astral.sh/uv/install.sh /uv-installer.sh
-RUN sh /uv-installer.sh && rm /uv-installer.sh
-ENV PATH="/root/.local/bin/:$PATH"
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
+ENV UV_PYTHON_DOWNLOADS=0
+ENV UV_PROJECT_ENVIRONMENT=/app/venv
 
 WORKDIR /app
 
-ENV UV_LINK_MODE=copy
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project --no-dev
+ADD . /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
 
-ENV UV_PROJECT_ENVIRONMENT=/opt/venv
-ENV PATH="$UV_PROJECT_ENVIRONMENT/bin:$PATH"
+FROM python:3.12-slim-bookworm
 
-COPY pyproject.toml /app/
-COPY uv.lock /app/
-RUN uv sync --frozen
+COPY --from=builder --chown=app:app /app /app
+ENV PATH="/app/venv/bin:$PATH"
 
-COPY . /app/
+CMD ["python", "app/manage.py", "runserver", "0.0.0.0:8000"]
 
-EXPOSE 8000
-
-CMD ["uv", "run", "python", "manage.py", "runserver", "0.0.0.0:8000"]
+# CMD ["sleep", "infinity"]
