@@ -5,23 +5,16 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.conf import settings
 from ninja import Router
-from ninja.security import HttpBearer
 
 from .models import User
 from .schemas import UserInput, AuthResponse, RefreshInput, RefreshResponse
 from .auth_token import AuthToken
 
 
-class AuthBearer(HttpBearer):
-    def authenticate(self, request, token):
-        payload = AuthToken.decode_jwt(token)
-        return payload
-
-
 router = Router()
 
 
-@router.post("/register")
+@router.post("/register", auth=None)
 def register(request, payload: UserInput):
     if User.objects.filter(email=payload.email).exists():
         return {"error": "Email already in use"}
@@ -46,7 +39,7 @@ def register(request, payload: UserInput):
         return {"error": str(e)}
 
 
-@router.post("/login", response=AuthResponse)
+@router.post("/login", response=AuthResponse, auth=None)
 def login_view(request, payload: UserInput):
     user = authenticate(request, email=payload.email, password=payload.password)
     if not user:
@@ -62,7 +55,7 @@ def login_view(request, payload: UserInput):
     }
 
 
-@router.post("/refresh_token", response=RefreshResponse)
+@router.post("/refresh_token", response=RefreshResponse, auth=None)
 def refresh_token(request, data: RefreshInput):
     payload = AuthToken.decode_jwt(data.refresh_token)
     if not payload:
@@ -72,14 +65,14 @@ def refresh_token(request, data: RefreshInput):
     return AuthToken.create_tokens(user.email)
 
 
-@router.get("/profile", auth=AuthBearer())
+@router.get("/profile")
 def user_profile(request):
     payload = request.auth
     user = User.objects.get(email=payload["email"])
     return {"email": user.email}
 
 
-@router.get("/activate/{uid}/{token}", url_name="activate")
+@router.get("/activate/{uid}/{token}", url_name="activate", auth=None)
 def activate_account(request, uid: int, token: str):
     user = get_object_or_404(User, pk=uid)
 
