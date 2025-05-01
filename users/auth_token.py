@@ -22,15 +22,10 @@ class AuthToken:
         )
 
     @staticmethod
-    def decode_jwt(token: str) -> dict | None:
-        try:
-            return jwt.decode(
-                token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM]
-            )
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
+    def decode_jwt(token: str) -> dict:
+        return jwt.decode(
+            token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM]
+        )
 
     @classmethod
     def create_tokens(cls, email: str) -> Tokens:
