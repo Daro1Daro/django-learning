@@ -12,13 +12,11 @@ class AuthBearer(HttpBearer):
     def authenticate(self, request, token):
         try:
             return AuthToken.decode_jwt(token)
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
             return None
 
 
-api = NinjaAPI(version="1", auth=AuthBearer)
+api = NinjaAPI(version="1", auth=AuthBearer())
 
 api.add_router("/auth/", users_router)
 

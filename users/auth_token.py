@@ -11,9 +11,9 @@ class Tokens(TypedDict):
 
 class AuthToken:
     @staticmethod
-    def encode_jwt(email: str, exp: int) -> str:
+    def encode_jwt(uid: int, exp: int) -> str:
         payload = {
-            "email": email,
+            "uid": uid,
             "exp": datetime.utcnow() + timedelta(seconds=exp),
             "iat": datetime.utcnow(),
         }
@@ -28,9 +28,9 @@ class AuthToken:
         )
 
     @classmethod
-    def create_tokens(cls, email: str) -> Tokens:
-        access_token = cls.encode_jwt(email, settings.JWT_EXP_TIME)
-        refresh_token = cls.encode_jwt(email, settings.JWT_REFRESH_EXP_TIME)
+    def create_tokens(cls, uid: int) -> Tokens:
+        access_token = cls.encode_jwt(uid, settings.JWT_EXP_TIME)
+        refresh_token = cls.encode_jwt(uid, settings.JWT_REFRESH_EXP_TIME)
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
