@@ -1,7 +1,6 @@
 from pathlib import Path
 from os import getenv
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -125,3 +124,15 @@ EMAIL_HOST = getenv("EMAIL_HOST")
 EMAIL_PORT = getenv("EMAIL_PORT")
 DEFAULT_FROM_EMAIL = "noreply@test.com"
 PASSWORD_RESET_TIMEOUT = 6 * 60 * 60
+
+
+# Redis
+
+REDIS_URL = f"redis://{getenv('REDIS_USER')}:{getenv('REDIS_PASSWORD')}@redis:6379"
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
+    }
+}
