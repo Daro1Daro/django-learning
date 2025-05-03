@@ -1,7 +1,7 @@
 from django.contrib.auth.tokens import default_token_generator
 
 from .models import User
-from .exceptions import InvalidOrExpiredToken
+from .exceptions import InvalidActivationToken
 
 
 def activate_user_account(user: User, token: str):
@@ -9,7 +9,7 @@ def activate_user_account(user: User, token: str):
         user.is_active = True
         user.save()
     else:
-        raise InvalidOrExpiredToken
+        raise InvalidActivationToken
 
 
 def create_user(email: str, password: str) -> User:
