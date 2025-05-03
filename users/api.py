@@ -108,18 +108,18 @@ def refresh_token(request: HttpRequest, response: HttpResponse):
     AuthToken.blacklist_token(refresh_token, settings.JWT_REFRESH_EXP_TIME)
 
     user = get_user_by_id(uid=payload["uid"])
-    tokens = AuthToken.create_tokens(user.id)
+    new_tokens = AuthToken.create_tokens(user.id)
 
     response.set_cookie(
         key="refresh_token",
-        value=tokens["refresh_token"],
+        value=new_tokens["refresh_token"],
         httponly=True,
         secure=True,
         samesite="lax",
     )
 
     return {
-        "access_token": tokens["access_token"],
+        "access_token": new_tokens["access_token"],
     }
 
 
