@@ -3,18 +3,20 @@ from ninja.security import HttpBearer
 import jwt
 
 from users.auth_token import AuthToken
-
-
-class InvalidToken(Exception):
-    pass
+from users.exceptions import InvalidToken
 
 
 class AuthBearer(HttpBearer):
     def authenticate(self, request, token):
         try:
-            return AuthToken.decode_jwt(token)
+            payload = AuthToken.decode_jwt(token)
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
             raise InvalidToken
+
+        if AuthToken.is_token_blacklisted(token):
+            raise InvalidToken
+
+        return {"payload": payload, "access_token": token}
 
 
 api = NinjaAPI(version="1", auth=AuthBearer())

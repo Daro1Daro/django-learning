@@ -12,7 +12,7 @@ from .models import User
 from .auth_token import AuthToken
 from .queries import get_user_by_id
 from .commands import activate_user_account, create_user
-from .exceptions import InvalidOrExpiredToken
+from .exceptions import InvalidActivationToken, InvalidToken
 
 router = Router()
 
@@ -64,7 +64,7 @@ def activate_account(request: HttpRequest, uid: int, token: str):
 
     try:
         activate_user_account(user=user, token=token)
-    except InvalidOrExpiredToken:
+    except InvalidActivationToken:
         raise HttpError(401, "Invalid or expired token.")
 
     return {"message": "Account activated successfully!"}
@@ -102,6 +102,11 @@ def refresh_token(request: HttpRequest, response: HttpResponse):
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
         raise HttpError(401, "Invalid or expired token.")
 
+    if AuthToken.is_token_blacklisted(refresh_token):
+        raise InvalidToken
+
+    AuthToken.blacklist_token(refresh_token, settings.JWT_REFRESH_EXP_TIME)
+
     user = get_user_by_id(uid=payload["uid"])
     tokens = AuthToken.create_tokens(user.id)
 
@@ -118,8 +123,20 @@ def refresh_token(request: HttpRequest, response: HttpResponse):
     }
 
 
+@router.post("/logout")
+def logout(request: HttpRequest):
+    access_token = request.auth["access_token"]
+    refresh_token = request.COOKIES["refresh_token"]
+
+    # TODO: compute ttl
+    AuthToken.blacklist_token(access_token, settings.JWT_EXP_TIME)
+    AuthToken.blacklist_token(refresh_token, settings.JWT_REFRESH_EXP_TIME)
+
+    return {"message": "You have successfully logged out."}
+
+
 @router.get("/profile")
 def user_profile(request: HttpRequest):
-    payload = request.auth
+    payload = request.auth["payload"]
     user = get_user_by_id(uid=payload["uid"])
     return {"email": user.email}

@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
-import jwt
-from django.conf import settings
 from typing import TypedDict
+from django.conf import settings
+from django.core.cache import cache
+import jwt
 
 
 class Tokens(TypedDict):
@@ -35,3 +36,11 @@ class AuthToken:
             "access_token": access_token,
             "refresh_token": refresh_token,
         }
+
+    @staticmethod
+    def blacklist_token(token: str, timeout: int):
+        cache.set(token, "blacklisted", timeout=timeout)
+
+    @staticmethod
+    def is_token_blacklisted(token: str) -> bool:
+        return cache.get(token) == "blacklisted"

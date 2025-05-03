@@ -1,2 +1,6 @@
-class InvalidOrExpiredToken(Exception):
+class InvalidActivationToken(Exception):
+    pass
+
+
+class InvalidToken(Exception):
     pass
