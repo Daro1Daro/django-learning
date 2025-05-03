@@ -8,10 +8,7 @@ from users.exceptions import InvalidToken
 
 class AuthBearer(HttpBearer):
     def authenticate(self, request, token):
-        try:
-            payload = AuthToken.decode_jwt(token)
-        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
-            raise InvalidToken
+        payload = AuthToken.decode_jwt(token)
 
         if AuthToken.is_token_blacklisted(token):
             raise InvalidToken
@@ -23,6 +20,8 @@ api = NinjaAPI(version="1", auth=AuthBearer())
 
 
 @api.exception_handler(InvalidToken)
+@api.exception_handler(jwt.ExpiredSignatureError)
+@api.exception_handler(jwt.InvalidTokenError)
 def on_invalid_token(request, exc):
     return api.create_response(
         request, {"detail": "Invalid token supplied"}, status=401

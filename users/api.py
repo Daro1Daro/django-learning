@@ -6,7 +6,6 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from ninja import Router, Schema
 from ninja.errors import HttpError
-import jwt
 
 from .models import User
 from .auth_token import AuthToken
@@ -97,10 +96,7 @@ def login_view(request: HttpRequest, response: HttpResponse, payload: UserInput)
 @router.post("/refresh_token", auth=None)
 def refresh_token(request: HttpRequest, response: HttpResponse):
     refresh_token = request.COOKIES["refresh_token"]
-    try:
-        payload = AuthToken.decode_jwt(refresh_token)
-    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
-        raise HttpError(401, "Invalid or expired token.")
+    payload = AuthToken.decode_jwt(refresh_token)
 
     if AuthToken.is_token_blacklisted(refresh_token):
         raise InvalidToken
