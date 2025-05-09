@@ -124,3 +124,4 @@ class Tests(Base):
     }
 
     SECRET_KEY = "secret"
+    JWT_SECRET = "jwt_secret"
