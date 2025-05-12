@@ -3,18 +3,21 @@ from unittest.mock import patch, MagicMock
 
 from django.test import TestCase, RequestFactory
 from django.urls import reverse
+from django.contrib.auth.tokens import default_token_generator
 
 from .models import User
 from .api import register, UserInput
 from .exceptions import InvalidActivationToken
 from .auth_token import AuthToken
+from .commands import command_create_user, command_activate_user_account
+from .queries import query_get_user_by_id
 
 
 def create_user(email: str, password: str, is_active: bool = False):
     return User.objects.create(email=email, password=password, is_active=is_active)
 
 
-@patch("users.api.create_user")
+@patch("users.api.command_create_user")
 @patch("users.api.default_token_generator.make_token")
 @patch("users.api.reverse")
 @patch("users.api.send_mail")
@@ -31,7 +34,7 @@ class RegisterViewTests(TestCase):
         mock_create_user: MagicMock,
     ):
         """
-        Calls create_user, make_token, reverse, build_absolute_uri and send_mail with correct parameters in positive case scenario.
+        Calls command_create_user, make_token, reverse, build_absolute_uri and send_mail with correct parameters in positive case scenario.
         """
         EMAIL = "test@test.com"
         PASSWORD = "pass"
@@ -138,8 +141,8 @@ class RegisterViewTests(TestCase):
         mock_send_mail.assert_not_called()
 
 
-@patch("users.api.get_user_by_id")
-@patch("users.api.activate_user_account")
+@patch("users.api.query_get_user_by_id")
+@patch("users.api.command_activate_user_account")
 class ActivateAccountViewTests(TestCase):
     def setUp(self):
         self.URL_NAME = "api-1:activate"
@@ -152,7 +155,7 @@ class ActivateAccountViewTests(TestCase):
         mock_get_user_by_id: MagicMock,
     ):
         """
-        Calls get_user_by_id, activate_user_account and returns correct message.
+        Calls query_get_user_by_id, command_activate_user_account and returns correct message.
         """
         GET_USER_BY_ID_RETURN_VALUE: User = User(
             pk=self.USER_ID, email="test@test.com", password="pass", is_active=False
@@ -364,3 +367,36 @@ class LogoutViewTests(TestCase):
         content = json.loads(response.text)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(content["detail"], "You have successfully logged out.")
+
+
+class CreateUserCommandTests(TestCase):
+    def test_user_is_created(self):
+        EMAIL = "test@email.com"
+
+        created_user = command_create_user(email=EMAIL, password="pass")
+        user = User.objects.get(email=EMAIL)
+
+        self.assertEqual(created_user, user)
+
+
+class ActivateUserCommandTests(TestCase):
+    def test_user_is_activated(self):
+        user = create_user(email="test@user.com", password="pass")
+        self.assertFalse(user.is_active)
+
+        token = default_token_generator.make_token(user)
+        command_activate_user_account(user=user, token=token)
+        self.assertTrue(user.is_active)
+
+    def test_throws_exception_if_token_is_invalid(self):
+        user = create_user(email="test@user.com", password="pass")
+        with self.assertRaises(InvalidActivationToken):
+            command_activate_user_account(user=user, token="invalid_token")
+
+
+class GetUserByIdQueryTests(TestCase):
+    def test_returns_correct_user(self):
+        user = create_user(email="test@email.com", password="pass")
+        retrieved_user = query_get_user_by_id(user.id)
+
+        self.assertEqual(user, retrieved_user)
