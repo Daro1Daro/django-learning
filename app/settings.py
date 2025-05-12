@@ -26,6 +26,7 @@ class Base(MailHogConfig, PyJWTConfig, RedisConfig, Configuration):
         "django.contrib.staticfiles",
         "ninja",
         "users",
+        "projects",
     ]
 
     MIDDLEWARE = [
@@ -125,3 +126,16 @@ class Tests(Base):
 
     SECRET_KEY = "secret"
     JWT_SECRET = "jwt_secret"
+
+
+class Local(Base):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": "django_db",
+            "USER": "django_user",
+            "PASSWORD": "django_password",
+            "HOST": "127.0.0.1",
+            "PORT": "5432",
+        }
+    }
