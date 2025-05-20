@@ -7,7 +7,6 @@ from django.http import HttpRequest, HttpResponse
 from ninja import Router, Schema
 from ninja.errors import HttpError
 
-from .models import User
 from .auth_token import AuthToken
 from .queries import query_get_user_by_id
 from .commands import command_activate_user_account, command_create_user
@@ -32,9 +31,6 @@ class RefreshResponse(Schema):
 
 @router.post("/register", url_name="register", auth=None)
 def register(request: HttpRequest, payload: UserInput):
-    if User.objects.filter(email=payload.email).exists():
-        raise HttpError(400, "Email already in use.")
-
     try:
         user = command_create_user(email=payload.email, password=payload.password)
     except (TypeError, ValueError):
@@ -101,8 +97,6 @@ def refresh_token(request: HttpRequest, response: HttpResponse):
     if AuthToken.is_token_blacklisted(refresh_token):
         raise InvalidToken
 
-    AuthToken.blacklist_token(refresh_token, settings.JWT_REFRESH_EXP_TIME)
-
     user = query_get_user_by_id(uid=payload["uid"])
     new_tokens = AuthToken.create_tokens(user.id)
 
@@ -113,6 +107,8 @@ def refresh_token(request: HttpRequest, response: HttpResponse):
         secure=True,
         samesite="lax",
     )
+
+    AuthToken.blacklist_token(refresh_token, settings.JWT_REFRESH_EXP_TIME)
 
     return {
         "access_token": new_tokens["access_token"],
