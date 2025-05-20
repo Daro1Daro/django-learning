@@ -30,7 +30,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
 
   mailhog:
     image: mailhog/mailhog
@@ -38,13 +38,13 @@ services:
     logging:
       driver: 'none'
     ports:
-      - "1025:1025"
+      - "${EMAIL_PORT}:1025"
       - "8025:8025"
 
   redis:
     image: redis:latest
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:6379"
     volumes:
       - redis_data:/data
     environment:
