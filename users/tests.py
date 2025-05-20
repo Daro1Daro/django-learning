@@ -4,6 +4,7 @@ from unittest.mock import patch, MagicMock
 from django.test import TestCase, RequestFactory
 from django.urls import reverse
 from django.contrib.auth.tokens import default_token_generator
+from ninja.errors import HttpError
 
 from .models import User
 from .api import register, UserInput
@@ -75,39 +76,6 @@ class RegisterViewTests(TestCase):
             from_email="noreply@test.com",
             recipient_list=[CREATE_USER_RETURN_VALUE.email],
         )
-
-    def test_register_returns_400_if_email_already_exists(
-        self,
-        mock_send_mail: MagicMock,
-        mock_reverse: MagicMock,
-        mock_make_token: MagicMock,
-        mock_create_user: MagicMock,
-    ):
-        """
-        If email already exists, an appropriate message and 400 are returned.
-        """
-        EMAIL = "existing@email.com"
-        PASSWORD = "pass"
-
-        create_user(email=EMAIL, password=PASSWORD)
-
-        response = self.client.post(
-            path=self.URL,
-            data={
-                "email": EMAIL,
-                "password": PASSWORD,
-            },
-            content_type="application/json",
-        )
-
-        content = json.loads(response.text)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(content["detail"], "Email already in use.")
-
-        mock_create_user.assert_not_called()
-        mock_reverse.assert_not_called()
-        mock_make_token.assert_not_called()
-        mock_send_mail.assert_not_called()
 
     def test_user_creation_failure(
         self,
@@ -377,6 +345,15 @@ class CreateUserCommandTests(TestCase):
         user = User.objects.get(email=EMAIL)
 
         self.assertEqual(created_user, user)
+
+    def test_throws_exception_if_email_already_exists(self):
+        EMAIL = "existing@email.com"
+        PASSWORD = "pass"
+
+        create_user(email=EMAIL, password=PASSWORD)
+
+        with self.assertRaises(HttpError):
+            command_create_user(email=EMAIL, password="pass")
 
 
 class ActivateUserCommandTests(TestCase):
