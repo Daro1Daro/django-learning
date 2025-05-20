@@ -35,6 +35,4 @@ def on_invalid_token(request, exc):
 
 @api.exception_handler(ProjectPermissionDenied)
 def on_project_permission_denied(request, exc):
-    return api.create_response(
-        request, {"detail": "You do not have access to this project"}, status=403
-    )
+    return api.create_response(request, {"detail": "Access denied"}, status=403)
