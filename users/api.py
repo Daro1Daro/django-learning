@@ -135,6 +135,5 @@ def logout(request: HttpRequest):
 
 @router.get("/profile")
 def user_profile(request: HttpRequest):
-    payload = request.auth["payload"]
-    user = query_get_user_by_id(uid=payload["uid"])
+    user = request.auth["user"]
     return {"email": user.email}

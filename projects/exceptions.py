@@ -1,0 +1,2 @@
+class ProjectPermissionDenied(Exception):
+    pass
