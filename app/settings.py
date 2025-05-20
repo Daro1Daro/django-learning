@@ -25,6 +25,7 @@ class Base(MailHogConfig, PyJWTConfig, RedisConfig, Configuration):
         "django.contrib.messages",
         "django.contrib.staticfiles",
         "ninja",
+        "guardian",
         "users",
         "projects",
     ]
@@ -57,6 +58,11 @@ class Base(MailHogConfig, PyJWTConfig, RedisConfig, Configuration):
     ]
 
     WSGI_APPLICATION = "app.wsgi.application"
+
+    AUTHENTICATION_BACKENDS = (
+        "django.contrib.auth.backends.ModelBackend",
+        "guardian.backends.ObjectPermissionBackend",
+    )
 
     # Database
     # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
