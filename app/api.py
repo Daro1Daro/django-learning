@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django.core.exceptions import ValidationError
 from ninja import NinjaAPI
 from ninja.security import HttpBearer
 import jwt
@@ -9,6 +10,7 @@ from users.exceptions import InvalidToken
 from projects.exceptions import ProjectPermissionDenied
 
 
+# TODO: think about lazy loaded user
 class AuthBearer(HttpBearer):
     def authenticate(self, request, token):
         payload = AuthToken.decode_jwt(token)
@@ -36,3 +38,8 @@ def on_invalid_token(request, exc):
 @api.exception_handler(ProjectPermissionDenied)
 def on_project_permission_denied(request, exc):
     return api.create_response(request, {"detail": "Access denied"}, status=403)
+
+
+@api.exception_handler(ValidationError)
+def on_validation_error(request, exc):
+    return api.create_response(request, {"detail": str(exc)}, status=422)

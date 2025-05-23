@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from guardian.shortcuts import get_objects_for_user
 
 from users.models import User
-from .models import Project
+from .models import Project, Task
 from .exceptions import ProjectPermissionDenied
 from .permissions import Permissions
 
@@ -17,7 +17,16 @@ def query_get_user_projects(user: User):
 def query_get_project(user: User, project_id: int) -> Project:
     project: Project = get_object_or_404(Project, id=project_id)
 
-    if not user.has_perm(Permissions.VIEW_PROJECT, project):
+    if not user.has_perm(perm=Permissions.VIEW_PROJECT, obj=project):
         raise ProjectPermissionDenied
 
     return project
+
+
+def query_get_task(user: User, task_id: int) -> Task:
+    task: Task = get_object_or_404(Task, id=task_id)
+
+    if not user.has_perm(perm=Permissions.VIEW_TASK, obj=task):
+        raise ProjectPermissionDenied
+
+    return task
