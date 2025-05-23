@@ -11,7 +11,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-install-project --no-dev
-ADD . /app
+COPY uv.lock pyproject.toml /app/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
@@ -23,7 +23,8 @@ ENV PATH="/app/venv/bin:$PATH"
 
 RUN groupadd -r app && useradd -r -g app app
 
-COPY --from=builder --chown=app:app /app /app
+COPY --chown=app:app --from=builder /app/venv /app/venv
+COPY --chown=app:app . /app/
 
 USER app
 CMD ["python", "-u", "app/manage.py", "runserver", "0.0.0.0:8000"]
