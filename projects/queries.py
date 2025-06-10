@@ -26,7 +26,7 @@ def query_get_project(user: User, project_id: int) -> Project:
 def query_get_task(user: User, task_id: int) -> Task:
     task: Task = get_object_or_404(Task, id=task_id)
 
-    if not user.has_perm(perm=Permissions.VIEW, obj=task):
+    if not user.has_perm(perm=Permissions.VIEW, obj=task.project):
         raise ProjectPermissionDenied
 
     return task

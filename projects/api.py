@@ -11,6 +11,8 @@ from .commands import (
     command_update_project,
     command_delete_project,
     command_create_task,
+    command_update_task,
+    command_delete_task,
 )
 from .models import StatusChoice
 
@@ -44,6 +46,7 @@ class ProjectOutput(Schema):
 
 
 class TaskOutput(Schema):
+    id: int
     title: str
     description: str
     status: StatusChoice
@@ -77,7 +80,7 @@ def get_project(request: HttpRequest, id: int):
     return query_get_project(user=user, project_id=id)
 
 
-@router.post("/", response=ProjectOutput)
+@router.post("/", response={201: ProjectOutput})
 def create_project(request: HttpRequest, response: HttpResponse, payload: ProjectInput):
     user = request.auth["user"]
     project = command_create_project(user=user, **payload.dict())
@@ -86,7 +89,7 @@ def create_project(request: HttpRequest, response: HttpResponse, payload: Projec
         reverse("api-1:get_project", args=[project.id])
     )
 
-    return project
+    return 201, project
 
 
 @router.patch("/{id}", response=ProjectOutput)
@@ -103,23 +106,21 @@ def update_project(
     return project
 
 
-@router.delete("/{id}")
+@router.delete("/{id}", response={204: None})
 def delete_project(request: HttpRequest, response: HttpResponse, id: int):
     user = request.auth["user"]
     command_delete_project(user=user, project_id=id)
 
-    response.status_code = 203
-
-    return response
+    return 204, None
 
 
-@router.get("/tasks/{id}", url_name="get_task", response=TaskOutput)
-def get_task(request: HttpRequest, id: int):
+@router.get("/tasks/{task_id}", url_name="get_task", response=TaskOutput)
+def get_task(request: HttpRequest, task_id: int):
     user = request.auth["user"]
-    return query_get_task(user=user, task_id=id)
+    return query_get_task(user=user, task_id=task_id)
 
 
-@router.post("/{project_id}/tasks", response=TaskOutput)
+@router.post("/{project_id}/tasks", response={201: TaskOutput})
 def create_task(
     request: HttpRequest, response: HttpResponse, project_id: int, payload: TaskInput
 ):
@@ -130,4 +131,29 @@ def create_task(
         reverse("api-1:get_task", args=[task.id])
     )
 
+    return 201, task
+
+
+@router.patch("/tasks/{task_id}", response=TaskOutput)
+def update_task(
+    request: HttpRequest,
+    response: HttpResponse,
+    task_id: int,
+    payload: TaskInput,
+):
+    user = request.auth["user"]
+    task = command_update_task(user=user, task_id=task_id, **payload.dict())
+
+    response["Location"] = request.build_absolute_uri(
+        reverse("api-1:get_task", args=[task.id])
+    )
+
     return task
+
+
+@router.delete("/tasks/{task_id}", response={204: None})
+def delete_task(request: HttpRequest, response: HttpResponse, task_id: int):
+    user = request.auth["user"]
+    command_delete_task(user=user, task_id=task_id)
+
+    return 204, None
