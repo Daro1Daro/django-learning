@@ -9,7 +9,7 @@ from django.contrib.auth.models import (
 
 
 class UserReadModel(QuerySet):
-    def get_by_id(self, id: int):
+    def get_by_id(self: QuerySet["User"], id: int) -> "User":
         return get_object_or_404(self, id=id)
 
 
