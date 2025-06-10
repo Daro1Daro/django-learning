@@ -31,7 +31,7 @@ class Project(models.Model):
             (Permissions.VIEW, "View Project"),
             (Permissions.UPDATE, "Update Project"),
             (Permissions.DELETE, "Delete Project"),
-            (Permissions.CREATE_TASK, "Create Task"),
+            (Permissions.MANAGE_TASKS, "Manage Tasks"),
         )
 
     def __str__(self):
