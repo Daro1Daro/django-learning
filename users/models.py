@@ -36,6 +36,7 @@ class UserManager(BaseUserManager):
         return user
 
 
+# TODO: add groups with permissions
 class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
     read_model = UserReadModel.as_manager()

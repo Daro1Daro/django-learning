@@ -5,9 +5,9 @@ from datetime import datetime
 
 from users.models import User
 from users.queries import query_get_user_by_id
+from permissions.permissions import Permissions
 from .models import Project, Task, StatusChoice
 from .queries import query_get_project
-from .permissions import Permissions
 from .exceptions import ProjectPermissionDenied
 
 
@@ -18,13 +18,13 @@ def command_create_project(user: User, name: str, member_ids: List[int]) -> Proj
     members = User.objects.filter(id__in=member_ids)
     project.members.set(members)
 
-    assign_perm(Permissions.DELETE_PROJECT, user, project)
-    assign_perm(Permissions.VIEW_PROJECT, user, project)
-    assign_perm(Permissions.UPDATE_PROJECT, user, project)
+    assign_perm(Permissions.DELETE, user, project)
+    assign_perm(Permissions.VIEW, user, project)
+    assign_perm(Permissions.UPDATE, user, project)
     assign_perm(Permissions.CREATE_TASK, user, project)
 
     for member in members:
-        assign_perm(Permissions.VIEW_PROJECT, member, project)
+        assign_perm(Permissions.VIEW, member, project)
 
     return project
 
@@ -34,14 +34,14 @@ def command_update_project(
 ) -> Project:
     project: Project = query_get_project(user=user, project_id=project_id)
 
-    if not user.has_perm(perm=Permissions.UPDATE_PROJECT, obj=project):
+    if not user.has_perm(perm=Permissions.UPDATE, obj=project):
         raise ProjectPermissionDenied
 
     project.name = name
     members = User.objects.filter(id__in=member_ids)
     project.members.set(members)
     for member in members:
-        assign_perm(Permissions.VIEW_PROJECT, member, project)
+        assign_perm(Permissions.VIEW, member, project)
 
     project.full_clean()
     project.save()
@@ -52,7 +52,7 @@ def command_update_project(
 def command_delete_project(user: User, project_id: int):
     project: Project = query_get_project(user=user, project_id=project_id)
 
-    if not user.has_perm(perm=Permissions.DELETE_PROJECT, obj=project):
+    if not user.has_perm(perm=Permissions.DELETE, obj=project):
         raise ProjectPermissionDenied
 
     project.delete()
@@ -88,12 +88,12 @@ def command_create_task(
     task.full_clean()
     task.save()
 
-    assign_perm(Permissions.DELETE_TASK, user, task)
-    assign_perm(Permissions.VIEW_TASK, user, task)
-    assign_perm(Permissions.UPDATE_TASK, user, task)
+    assign_perm(Permissions.DELETE, user, task)
+    assign_perm(Permissions.VIEW, user, task)
+    assign_perm(Permissions.UPDATE, user, task)
 
-    if assignee:
-        assign_perm(Permissions.VIEW_TASK, assignee, task)
-        assign_perm(Permissions.UPDATE_TASK, assignee, task)
+    if assignee and assignee.id != user.id:
+        assign_perm(Permissions.VIEW, assignee, task)
+        assign_perm(Permissions.UPDATE, assignee, task)
 
     return task

@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils.timezone import now
 
-from .permissions import Permissions
+from permissions.permissions import Permissions
 
 User = get_user_model()
 
@@ -28,9 +28,9 @@ class Project(models.Model):
     class Meta:
         default_permissions = ()
         permissions = (
-            (Permissions.VIEW_PROJECT, "View Project"),
-            (Permissions.UPDATE_PROJECT, "Update Project"),
-            (Permissions.DELETE_PROJECT, "Delete Project"),
+            (Permissions.VIEW, "View Project"),
+            (Permissions.UPDATE, "Update Project"),
+            (Permissions.DELETE, "Delete Project"),
             (Permissions.CREATE_TASK, "Create Task"),
         )
 
@@ -70,9 +70,9 @@ class Task(models.Model):
     class Meta:
         default_permissions = ()
         permissions = (
-            (Permissions.VIEW_TASK, "View Task"),
-            (Permissions.UPDATE_TASK, "Update Task"),
-            (Permissions.DELETE_TASK, "Delete Task"),
+            (Permissions.VIEW, "View Task"),
+            (Permissions.UPDATE, "Update Task"),
+            (Permissions.DELETE, "Delete Task"),
         )
 
     def __str__(self):

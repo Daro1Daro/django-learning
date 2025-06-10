@@ -28,6 +28,7 @@ class Base(MailHogConfig, PyJWTConfig, RedisConfig, Configuration):
         "guardian",
         "users",
         "projects",
+        "permissions",
     ]
 
     MIDDLEWARE = [
