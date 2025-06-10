@@ -75,8 +75,6 @@ def command_create_task(
     if assignee_id:
         assignee = query_get_user_by_id(uid=assignee_id)
 
-    print(assignee)
-
     task = Task(
         created_by=user,
         project=project,
