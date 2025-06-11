@@ -6,9 +6,10 @@ from configurations import Configuration
 from .configurations.mailhog import MailHogConfig
 from .configurations.pyjwt import PyJWTConfig
 from .configurations.redis import RedisConfig
+from .configurations.celery import CeleryConfig
 
 
-class Base(MailHogConfig, PyJWTConfig, RedisConfig, Configuration):
+class Base(MailHogConfig, PyJWTConfig, RedisConfig, CeleryConfig, Configuration):
     BASE_DIR = Path(__file__).resolve().parent.parent
 
     SECRET_KEY = getenv("DJANGO_SECRET_KEY", "secret")
