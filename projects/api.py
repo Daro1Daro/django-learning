@@ -5,7 +5,12 @@ from typing import List, Optional
 from datetime import datetime
 from pydantic import FutureDatetime
 
-from .queries import query_get_user_projects, query_get_project, query_get_task
+from .queries import (
+    query_get_user_projects,
+    query_get_project,
+    query_get_task,
+    query_get_tasks,
+)
 from .commands import (
     command_create_project,
     command_update_project,
@@ -62,56 +67,28 @@ class ProjectFilterSchema(FilterSchema):
     member_email: Optional[str] = Field(None, q="members__email__icontains")
 
 
-@router.get("/", response=List[ProjectOutput])
-def get_projects(request: HttpRequest, filters: ProjectFilterSchema = Query(...)):
+class TaskFilterSchema(FilterSchema):
+    project_id: Optional[int] = Field(None, q="project__id__exact")
+    title: Optional[str] = Field(None, q="title__icontains")
+    description: Optional[str] = Field(None, q="description__icontains")
+    status: Optional[StatusChoice] = Field(None, q="status__iexact")
+    assignee_id: Optional[int] = Field(None, q="assignee__id__exact")
+    created_by_id: Optional[int] = Field(None, q="created_by__id__exact")
+    due_date_gte: Optional[datetime] = Field(None, q="due_date__gte")
+    due_date_lte: Optional[datetime] = Field(None, q="due_date__lte")
+
+
+@router.get("/tasks", url_name="get_tasks", response=List[TaskOutput])
+def get_tasks(request: HttpRequest, filters: TaskFilterSchema = Query(...)):
     user = request.auth["user"]
 
-    if not request.GET:
-        projects = query_get_user_projects(user=user)
-    else:
-        projects = filters.filter(query_get_user_projects(user=user))
-
-    return list(projects)
-
-
-@router.get("/{id}", url_name="get_project", response=ProjectOutput)
-def get_project(request: HttpRequest, id: int):
-    user = request.auth["user"]
-    return query_get_project(user=user, project_id=id)
-
-
-@router.post("/", response={201: ProjectOutput})
-def create_project(request: HttpRequest, response: HttpResponse, payload: ProjectInput):
-    user = request.auth["user"]
-    project = command_create_project(user=user, **payload.dict())
-
-    response["Location"] = request.build_absolute_uri(
-        reverse("api-1:get_project", args=[project.id])
+    tasks = (
+        filters.filter(query_get_tasks(user=user))
+        if request.GET
+        else query_get_tasks(user=user)
     )
 
-    return 201, project
-
-
-@router.patch("/{id}", response=ProjectOutput)
-def update_project(
-    request: HttpRequest, response: HttpResponse, id: int, payload: ProjectInput
-):
-    user = request.auth["user"]
-    project = command_update_project(user=user, project_id=id, **payload.dict())
-
-    response["Location"] = request.build_absolute_uri(
-        reverse("api-1:get_project", args=[project.id])
-    )
-
-    return project
-
-
-@router.delete("/{id}", response={204: None})
-def delete_project(request: HttpRequest, response: HttpResponse, id: int):
-    user = request.auth["user"]
-    command_delete_project(user=user, project_id=id)
-
-    return 204, None
+    return list(tasks)
 
 
 @router.get("/tasks/{task_id}", url_name="get_task", response=TaskOutput)
@@ -120,12 +97,12 @@ def get_task(request: HttpRequest, task_id: int):
     return query_get_task(user=user, task_id=task_id)
 
 
-@router.post("/{project_id}/tasks", response={201: TaskOutput})
+@router.post("/{id}/tasks", response={201: TaskOutput})
 def create_task(
-    request: HttpRequest, response: HttpResponse, project_id: int, payload: TaskInput
+    request: HttpRequest, response: HttpResponse, id: int, payload: TaskInput
 ):
     user = request.auth["user"]
-    task = command_create_task(user=user, project_id=project_id, **payload.dict())
+    task = command_create_task(user=user, project_id=id, **payload.dict())
 
     response["Location"] = request.build_absolute_uri(
         reverse("api-1:get_task", args=[task.id])
@@ -155,5 +132,58 @@ def update_task(
 def delete_task(request: HttpRequest, response: HttpResponse, task_id: int):
     user = request.auth["user"]
     command_delete_task(user=user, task_id=task_id)
+
+    return 204, None
+
+
+@router.get("/", response=List[ProjectOutput])
+def get_projects(request: HttpRequest, filters: ProjectFilterSchema = Query(...)):
+    user = request.auth["user"]
+
+    projects = (
+        filters.filter(query_get_user_projects(user=user))
+        if request.GET
+        else query_get_user_projects(user=user)
+    )
+
+    return list(projects)
+
+
+@router.post("/", response={201: ProjectOutput})
+def create_project(request: HttpRequest, response: HttpResponse, payload: ProjectInput):
+    user = request.auth["user"]
+    project = command_create_project(user=user, **payload.dict())
+
+    response["Location"] = request.build_absolute_uri(
+        reverse("api-1:get_project", args=[project.id])
+    )
+
+    return 201, project
+
+
+@router.get("/{id}", url_name="get_project", response=ProjectOutput)
+def get_project(request: HttpRequest, id: int):
+    user = request.auth["user"]
+    return query_get_project(user=user, project_id=id)
+
+
+@router.patch("/{id}", response=ProjectOutput)
+def update_project(
+    request: HttpRequest, response: HttpResponse, id: int, payload: ProjectInput
+):
+    user = request.auth["user"]
+    project = command_update_project(user=user, project_id=id, **payload.dict())
+
+    response["Location"] = request.build_absolute_uri(
+        reverse("api-1:get_project", args=[project.id])
+    )
+
+    return project
+
+
+@router.delete("/{id}", response={204: None})
+def delete_project(request: HttpRequest, response: HttpResponse, id: int):
+    user = request.auth["user"]
+    command_delete_project(user=user, project_id=id)
 
     return 204, None
