@@ -24,21 +24,21 @@ def remove_standard_permissions(user: User, obj):
     remove_perm(Permissions.UPDATE, user, obj)
 
 
-def assign_project_member_permissions(user: User, project: "Project"):
+def assign_project_member_permissions(user: User, project: "Project"):  # noqa: F821
     assign_perm(Permissions.VIEW, user, project)
     assign_perm(Permissions.MANAGE_TASKS, user, project)
 
 
-def remove_project_member_permissions(user: User, project: "Project"):
+def remove_project_member_permissions(user: User, project: "Project"):  # noqa: F821
     remove_perm(Permissions.VIEW, user, project)
     remove_perm(Permissions.MANAGE_TASKS, user, project)
 
 
-def assign_task_assignee_permissions(assignee: User, task: "Task"):
+def assign_task_assignee_permissions(assignee: User, task: "Task"):  # noqa: F821
     assign_perm(Permissions.VIEW, assignee, task)
     assign_perm(Permissions.UPDATE, assignee, task)
 
 
-def remove_task_assignee_permissions(assignee: User, task: "Task"):
+def remove_task_assignee_permissions(assignee: User, task: "Task"):  # noqa: F821
     remove_perm(Permissions.VIEW, assignee, task)
     remove_perm(Permissions.UPDATE, assignee, task)
