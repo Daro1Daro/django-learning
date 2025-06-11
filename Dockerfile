@@ -21,10 +21,16 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PATH="/app/venv/bin:$PATH"
 
+WORKDIR /app
+
 RUN groupadd -r app && useradd -r -g app app
 
-COPY --chown=app:app --from=builder /app/venv /app/venv
-COPY --chown=app:app . /app/
+COPY --chown=app:app --from=builder /app/venv ./venv
+COPY --chown=app:app ./backend/ .
+
+COPY --chown=app:app ./scripts/ ./scripts 
+RUN find ./scripts -type f -exec sed -i 's/\r$//g' {} \;
+RUN find ./scripts/ -type f -exec chmod +x {} \;
 
 USER app
-CMD ["python", "-u", "app/manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["python", "-u", "manage.py", "runserver", "0.0.0.0:8000"]

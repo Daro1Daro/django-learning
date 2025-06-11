@@ -14,11 +14,65 @@ services:
       watch:
         - action: sync
           path: .
-          target: /app
+          target: /backend/app
           ignore:
             - .venv/
         - action: rebuild
           path: uv.lock
+
+  celery:
+    build: .
+    container_name: 'celery_worker'
+    command: ./scripts/run_celery_worker.sh
+    depends_on:
+      - redis
+      - db
+    environment:
+      CELERY_BROKER: ${CELERY_BROKER}
+      CELERY_BACKEND: ${CELERY_BACKEND}
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /backend/app
+          ignore:
+            - .venv/
+        - action: rebuild
+          path: uv.lock
+
+  celery_beat:
+    build: .
+    container_name: 'celery_beat'
+    command: ./scripts/run_celery_beat.sh
+    depends_on:
+      - redis
+      - db
+    environment:
+      CELERY_BROKER: ${CELERY_BROKER}
+      CELERY_BACKEND: ${CELERY_BACKEND}
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /backend/app
+          ignore:
+            - .venv/
+        - action: rebuild
+          path: uv.lock
+
+  flower:
+    build: .
+    container_name: 'flower'
+    command: ./scripts/run_flower.sh
+    depends_on:
+      - redis
+      - db
+      - celery
+    environment:
+      CELERY_BROKER: ${CELERY_BROKER}
+      CELERY_BACKEND: ${CELERY_BACKEND}
+    ports:
+      - 5555:5555
 
   db:
     image: postgres:15
@@ -43,6 +97,7 @@ services:
 
   redis:
     image: redis:latest
+    container_name: 'redis'
     ports:
       - "${REDIS_PORT}:6379"
     volumes:
