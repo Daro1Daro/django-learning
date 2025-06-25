@@ -27,6 +27,7 @@ class Base(MailHogConfig, PyJWTConfig, RedisConfig, CeleryConfig, Configuration)
         "django.contrib.staticfiles",
         "ninja",
         "guardian",
+        "django_celery_beat",
         "users",
         "projects",
         "permissions",
