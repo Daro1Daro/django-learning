@@ -21,7 +21,7 @@ services:
   celery:
     << : *backend
     container_name: 'celery_worker'
-    command: ./scripts/run_celery_worker.sh
+    command: ./scripts/celery/run_celery_worker.sh
     ports: []
     develop:
       watch:
@@ -32,7 +32,7 @@ services:
   celery_beat:
     << : *backend
     container_name: 'celery_beat'
-    command: ./scripts/run_celery_beat.sh
+    command: ./scripts/celery/run_celery_beat.sh
     ports: []
     develop:
       watch:
@@ -43,7 +43,7 @@ services:
   flower:
     build: .
     container_name: 'flower'
-    command: ./scripts/run_flower.sh
+    command: ./scripts/celery/run_flower.sh
     depends_on:
       - celery
     environment:
