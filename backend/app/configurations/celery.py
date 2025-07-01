@@ -12,10 +12,10 @@ class CeleryConfig:
     CELERY_BEAT_SCHEDULE = {
         "send_email_for_overdue_tasks": {
             "task": "projects.tasks.send_email_for_overdue_tasks",
-            "schedule": crontab(minute="*/1"),
+            "schedule": crontab(minute="*/10"),
         },
         "send_email_for_pending_tasks": {
             "task": "projects.tasks.send_email_for_pending_tasks",
-            "schedule": crontab(minute="*/1"),
+            "schedule": crontab(minute="*/10"),
         },
     }
