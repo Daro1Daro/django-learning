@@ -1,5 +1,5 @@
 services:
-  web:
+  web: &backend
     container_name: 'app'
     build: .
     ports:
@@ -13,60 +13,38 @@ services:
     develop:
       watch:
         - action: sync
-          path: .
-          target: /backend/app
-          ignore:
-            - .venv/
+          path: ./backend
+          target: /app
         - action: rebuild
           path: uv.lock
 
   celery:
-    build: .
+    << : *backend
     container_name: 'celery_worker'
     command: ./scripts/run_celery_worker.sh
-    depends_on:
-      - redis
-      - db
-    environment:
-      CELERY_BROKER: ${CELERY_BROKER}
-      CELERY_BACKEND: ${CELERY_BACKEND}
+    ports: []
     develop:
       watch:
-        - action: sync
-          path: .
-          target: /backend/app
-          ignore:
-            - .venv/
-        - action: rebuild
-          path: uv.lock
+        - action: sync+restart
+          path: ./backend
+          target: /app
 
   celery_beat:
-    build: .
+    << : *backend
     container_name: 'celery_beat'
     command: ./scripts/run_celery_beat.sh
-    depends_on:
-      - redis
-      - db
-    environment:
-      CELERY_BROKER: ${CELERY_BROKER}
-      CELERY_BACKEND: ${CELERY_BACKEND}
+    ports: []
     develop:
       watch:
-        - action: sync
-          path: .
-          target: /backend/app
-          ignore:
-            - .venv/
-        - action: rebuild
-          path: uv.lock
+        - action: sync+restart
+          path: ./backend
+          target: /app
 
   flower:
     build: .
     container_name: 'flower'
     command: ./scripts/run_flower.sh
     depends_on:
-      - redis
-      - db
       - celery
     environment:
       CELERY_BROKER: ${CELERY_BROKER}
