@@ -1,5 +1,5 @@
 from pathlib import Path
-from os import getenv
+from os import getenv, path
 
 from configurations import Configuration
 
@@ -41,6 +41,7 @@ class Base(MailHogConfig, PyJWTConfig, RedisConfig, CeleryConfig, Configuration)
         "django.contrib.auth.middleware.AuthenticationMiddleware",
         "django.contrib.messages.middleware.MessageMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
+        "ninja.compatibility.files.fix_request_files_middleware",
     ]
 
     ROOT_URLCONF = "app.urls"
@@ -114,6 +115,9 @@ class Base(MailHogConfig, PyJWTConfig, RedisConfig, CeleryConfig, Configuration)
     # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
     STATIC_URL = "static/"
+
+    MEDIA_ROOT = path.join(BASE_DIR, "files/")
+    MEDIA_URL = "files/"
 
     # Default primary key field type
     # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

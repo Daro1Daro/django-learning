@@ -1,6 +1,8 @@
 from django.http import HttpRequest, HttpResponse
 from django.urls import reverse
-from ninja import Router, Schema, Query, FilterSchema, Field
+from django.core.exceptions import ValidationError
+from ninja import Router, Schema, Query, FilterSchema, Field, File
+from ninja.files import UploadedFile
 from typing import List, Optional
 from datetime import datetime
 from pydantic import FutureDatetime
@@ -18,10 +20,19 @@ from .commands import (
     command_create_task,
     command_update_task,
     command_delete_task,
+    command_create_task_attachment,
 )
 from .models import StatusChoice
 
 router = Router()
+
+
+ACCEPTED_TYPES = ["image/png", "image/jpeg", "application/pdf"]
+
+
+def validate_task_attachment_type(file: File[UploadedFile]):
+    if file.content_type not in ACCEPTED_TYPES:
+        raise ValidationError(f"Unsupported file type: {file.content_type}")
 
 
 class ProjectInput(Schema):
@@ -54,11 +65,20 @@ class TaskOutput(Schema):
     id: int
     title: str
     description: str
+    attachments: List[str]
     status: StatusChoice
     assignee: Optional[UserOutput]
     due_date: Optional[datetime]
     created_by: UserOutput
     created_at: datetime
+
+    @staticmethod
+    def resolve_attachments(obj, context):
+        request = context["request"]
+        return [
+            request.build_absolute_uri(attachment.file.url)
+            for attachment in obj.attachments.all()
+        ]
 
 
 class ProjectFilterSchema(FilterSchema):
@@ -99,10 +119,20 @@ def get_task(request: HttpRequest, task_id: int):
 
 @router.post("/{id}/tasks", response={201: TaskOutput})
 def create_task(
-    request: HttpRequest, response: HttpResponse, id: int, payload: TaskInput
+    request: HttpRequest,
+    response: HttpResponse,
+    id: int,
+    payload: TaskInput,
+    files: File[List[UploadedFile]] = None,
 ):
+    for file in files:
+        validate_task_attachment_type(file)
+
     user = request.auth["user"]
     task = command_create_task(user=user, project_id=id, **payload.dict())
+
+    for file in files:
+        command_create_task_attachment(file, task)
 
     response["Location"] = request.build_absolute_uri(
         reverse("api-1:get_task", args=[task.id])
@@ -117,9 +147,16 @@ def update_task(
     response: HttpResponse,
     task_id: int,
     payload: TaskInput,
+    files: File[List[UploadedFile]] = None,
 ):
+    for file in files:
+        validate_task_attachment_type(file)
+
     user = request.auth["user"]
     task = command_update_task(user=user, task_id=task_id, **payload.dict())
+
+    for file in files:
+        command_create_task_attachment(file, task)
 
     response["Location"] = request.build_absolute_uri(
         reverse("api-1:get_task", args=[task.id])

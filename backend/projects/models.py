@@ -53,6 +53,7 @@ class TaskReadModel(QuerySet):
 
 
 class Task(models.Model):
+    objects = models.Manager()
     read_model = TaskReadModel.as_manager()
 
     STATUS_CHOICES = {
@@ -100,3 +101,12 @@ class Task(models.Model):
         super().clean()
         if self.due_date and self.due_date <= now():
             raise ValidationError({"due_date": "Due date must be in the future."})
+
+
+class TaskAttachment(models.Model):
+    task = models.ForeignKey(Task, related_name="attachments", on_delete=models.CASCADE)
+    file = models.FileField(upload_to="task_attachments/")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def filename(self):
+        return self.file.name.split("/")[-1]

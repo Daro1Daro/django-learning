@@ -1,7 +1,7 @@
 from django.contrib import admin
 from guardian.admin import GuardedModelAdmin
 
-from .models import Project, Task
+from .models import Project, Task, TaskAttachment
 
 
 @admin.register(Project)
@@ -33,3 +33,18 @@ class TaskAdmin(GuardedModelAdmin):
         "created_by__username",
     )
     ordering = ("-created_at",)
+
+
+@admin.register(TaskAttachment)
+class TaskAttachmentAdmin(GuardedModelAdmin):
+    list_display = (
+        "task",
+        "uploaded_at",
+        "id",
+    )
+    list_filter = ("task", "uploaded_at")
+    search_fields = (
+        "task__title",
+        "task__project__nameuploaded_at",
+    )
+    ordering = ("-uploaded_at",)

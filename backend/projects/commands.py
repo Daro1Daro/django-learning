@@ -1,7 +1,9 @@
 from typing import List, Optional
-from guardian.shortcuts import assign_perm
 from datetime import datetime
 
+from guardian.shortcuts import assign_perm
+from ninja import File
+from ninja.files import UploadedFile
 
 from users.models import User
 from users.queries import query_get_user_by_id
@@ -13,7 +15,7 @@ from permissions.permissions import (
     assign_task_assignee_permissions,
     remove_task_assignee_permissions,
 )
-from .models import Project, Task, StatusChoice
+from .models import Project, Task, StatusChoice, TaskAttachment
 from .queries import query_get_project, query_get_task
 from .exceptions import ProjectPermissionDenied
 
@@ -155,3 +157,7 @@ def command_delete_task(user: User, task_id: int):
         raise ProjectPermissionDenied
 
     task.delete()
+
+
+def command_create_task_attachment(file: File[UploadedFile], task: Task):
+    TaskAttachment.objects.create(task=task, file=file)

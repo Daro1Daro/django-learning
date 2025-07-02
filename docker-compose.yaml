@@ -17,28 +17,32 @@ services:
           target: /app
         - action: rebuild
           path: uv.lock
+    volumes:
+      - files:/app/files/
 
   celery:
     << : *backend
     container_name: 'celery_worker'
     command: ./scripts/celery/run_celery_worker.sh
-    ports: []
     develop:
       watch:
         - action: sync+restart
           path: ./backend
           target: /app
+    ports: []
+    volumes: []
 
   celery_beat:
     << : *backend
     container_name: 'celery_beat'
     command: ./scripts/celery/run_celery_beat.sh
-    ports: []
     develop:
       watch:
         - action: sync+restart
           path: ./backend
           target: /app
+    ports: []
+    volumes: []
 
   flower:
     build: .
@@ -86,3 +90,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  files:
