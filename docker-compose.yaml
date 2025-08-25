@@ -1,9 +1,9 @@
 services:
-  web:
+  web: &backend
     container_name: 'app'
     build: .
     ports:
-      - "8000:8000"
+      - "8001:8000"
     env_file:
       - .env
     depends_on:
@@ -13,12 +13,48 @@ services:
     develop:
       watch:
         - action: sync
-          path: .
+          path: ./backend
           target: /app
-          ignore:
-            - .venv/
         - action: rebuild
           path: uv.lock
+    volumes:
+      - files:/app/files/
+
+  celery:
+    << : *backend
+    container_name: 'celery_worker'
+    command: ./scripts/celery/run_celery_worker.sh
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./backend
+          target: /app
+    ports: []
+    volumes: []
+
+  celery_beat:
+    << : *backend
+    container_name: 'celery_beat'
+    command: ./scripts/celery/run_celery_beat.sh
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./backend
+          target: /app
+    ports: []
+    volumes: []
+
+  flower:
+    build: .
+    container_name: 'flower'
+    command: ./scripts/celery/run_flower.sh
+    depends_on:
+      - celery
+    environment:
+      CELERY_BROKER: ${CELERY_BROKER}
+      CELERY_BACKEND: ${CELERY_BACKEND}
+    ports:
+      - 5555:5555
 
   db:
     image: postgres:15
@@ -43,6 +79,7 @@ services:
 
   redis:
     image: redis:latest
+    container_name: 'redis'
     ports:
       - "${REDIS_PORT}:6379"
     volumes:
@@ -53,3 +90,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  files:

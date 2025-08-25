@@ -1,27 +1,26 @@
 from django.http import HttpRequest, HttpResponse
 from django.urls import reverse
-from ninja import Router, Schema, Query, FilterSchema, Field
+from django.db import transaction
+from django.core.exceptions import ValidationError
+from ninja import Router, Schema, Query, FilterSchema, Field, File
+from ninja.files import UploadedFile
 from typing import List, Optional
 from datetime import datetime
 from pydantic import FutureDatetime
 
-from .queries import (
-    query_get_user_projects,
-    query_get_project,
-    query_get_task,
-    query_get_tasks,
-)
-from .commands import (
-    command_create_project,
-    command_update_project,
-    command_delete_project,
-    command_create_task,
-    command_update_task,
-    command_delete_task,
-)
-from .models import StatusChoice
+from . import queries
+from . import commands
+from .models import Task
 
 router = Router()
+
+
+ACCEPTED_TYPES = ["image/png", "image/jpeg", "application/pdf"]
+
+
+def validate_task_attachment_type(file: File[UploadedFile]):
+    if file.content_type not in ACCEPTED_TYPES:
+        raise ValidationError(f"Unsupported file type: {file.content_type}")
 
 
 class ProjectInput(Schema):
@@ -32,7 +31,7 @@ class ProjectInput(Schema):
 class TaskInput(Schema):
     title: str = Field(max_length=255)
     description: str = Field(max_length=10000)
-    status: StatusChoice
+    status: Task.StatusChoice
     assignee_id: Optional[int]
     due_date: Optional[FutureDatetime]
 
@@ -54,11 +53,20 @@ class TaskOutput(Schema):
     id: int
     title: str
     description: str
-    status: StatusChoice
+    attachments: list[str]
+    status: Task.StatusChoice
     assignee: Optional[UserOutput]
     due_date: Optional[datetime]
     created_by: UserOutput
     created_at: datetime
+
+    @staticmethod
+    def resolve_attachments(obj, context):
+        request = context["request"]
+        return [
+            request.build_absolute_uri(attachment.file.url)
+            for attachment in obj.attachments.all()
+        ]
 
 
 class ProjectFilterSchema(FilterSchema):
@@ -71,21 +79,21 @@ class TaskFilterSchema(FilterSchema):
     project_id: Optional[int] = Field(None, q="project__id__exact")
     title: Optional[str] = Field(None, q="title__icontains")
     description: Optional[str] = Field(None, q="description__icontains")
-    status: Optional[StatusChoice] = Field(None, q="status__iexact")
+    status: Optional[Task.StatusChoice] = Field(None, q="status__iexact")
     assignee_id: Optional[int] = Field(None, q="assignee__id__exact")
     created_by_id: Optional[int] = Field(None, q="created_by__id__exact")
     due_date_gte: Optional[datetime] = Field(None, q="due_date__gte")
     due_date_lte: Optional[datetime] = Field(None, q="due_date__lte")
 
 
-@router.get("/tasks", url_name="get_tasks", response=List[TaskOutput])
+@router.get("/tasks", url_name="get_tasks", response=list[TaskOutput])
 def get_tasks(request: HttpRequest, filters: TaskFilterSchema = Query(...)):
     user = request.auth["user"]
 
     tasks = (
-        filters.filter(query_get_tasks(user=user))
+        filters.filter(queries.get_tasks(user=user))
         if request.GET
-        else query_get_tasks(user=user)
+        else queries.get_tasks(user=user)
     )
 
     return list(tasks)
@@ -94,15 +102,26 @@ def get_tasks(request: HttpRequest, filters: TaskFilterSchema = Query(...)):
 @router.get("/tasks/{task_id}", url_name="get_task", response=TaskOutput)
 def get_task(request: HttpRequest, task_id: int):
     user = request.auth["user"]
-    return query_get_task(user=user, task_id=task_id)
+    return queries.get_task(user=user, task_id=task_id)
 
 
 @router.post("/{id}/tasks", response={201: TaskOutput})
 def create_task(
-    request: HttpRequest, response: HttpResponse, id: int, payload: TaskInput
+    request: HttpRequest,
+    response: HttpResponse,
+    id: int,
+    payload: TaskInput,
+    files: File[List[UploadedFile]] = None,
 ):
+    for file in files:
+        validate_task_attachment_type(file)
+
     user = request.auth["user"]
-    task = command_create_task(user=user, project_id=id, **payload.dict())
+
+    with transaction.atomic():
+        task = commands.create_task(user=user, project_id=id, **payload.dict())
+        for file in files:
+            commands.create_task_attachment(file, task)
 
     response["Location"] = request.build_absolute_uri(
         reverse("api-1:get_task", args=[task.id])
@@ -117,9 +136,17 @@ def update_task(
     response: HttpResponse,
     task_id: int,
     payload: TaskInput,
+    files: File[List[UploadedFile]] = None,
 ):
+    for file in files:
+        validate_task_attachment_type(file)
+
     user = request.auth["user"]
-    task = command_update_task(user=user, task_id=task_id, **payload.dict())
+
+    with transaction.atomic():
+        task = commands.update_task(user=user, task_id=task_id, **payload.dict())
+        for file in files:
+            commands.create_task_attachment(file, task)
 
     response["Location"] = request.build_absolute_uri(
         reverse("api-1:get_task", args=[task.id])
@@ -131,19 +158,19 @@ def update_task(
 @router.delete("/tasks/{task_id}", response={204: None})
 def delete_task(request: HttpRequest, response: HttpResponse, task_id: int):
     user = request.auth["user"]
-    command_delete_task(user=user, task_id=task_id)
+    commands.delete_task(user=user, task_id=task_id)
 
     return 204, None
 
 
-@router.get("/", response=List[ProjectOutput])
+@router.get("/", response=list[ProjectOutput])
 def get_projects(request: HttpRequest, filters: ProjectFilterSchema = Query(...)):
     user = request.auth["user"]
 
     projects = (
-        filters.filter(query_get_user_projects(user=user))
+        filters.filter(queries.get_user_projects(user=user))
         if request.GET
-        else query_get_user_projects(user=user)
+        else queries.get_user_projects(user=user)
     )
 
     return list(projects)
@@ -152,7 +179,7 @@ def get_projects(request: HttpRequest, filters: ProjectFilterSchema = Query(...)
 @router.post("/", response={201: ProjectOutput})
 def create_project(request: HttpRequest, response: HttpResponse, payload: ProjectInput):
     user = request.auth["user"]
-    project = command_create_project(user=user, **payload.dict())
+    project = commands.create_project(user=user, **payload.dict())
 
     response["Location"] = request.build_absolute_uri(
         reverse("api-1:get_project", args=[project.id])
@@ -164,7 +191,7 @@ def create_project(request: HttpRequest, response: HttpResponse, payload: Projec
 @router.get("/{id}", url_name="get_project", response=ProjectOutput)
 def get_project(request: HttpRequest, id: int):
     user = request.auth["user"]
-    return query_get_project(user=user, project_id=id)
+    return queries.get_project(user=user, project_id=id)
 
 
 @router.patch("/{id}", response=ProjectOutput)
@@ -172,7 +199,7 @@ def update_project(
     request: HttpRequest, response: HttpResponse, id: int, payload: ProjectInput
 ):
     user = request.auth["user"]
-    project = command_update_project(user=user, project_id=id, **payload.dict())
+    project = commands.update_project(user=user, project_id=id, **payload.dict())
 
     response["Location"] = request.build_absolute_uri(
         reverse("api-1:get_project", args=[project.id])
@@ -184,6 +211,6 @@ def update_project(
 @router.delete("/{id}", response={204: None})
 def delete_project(request: HttpRequest, response: HttpResponse, id: int):
     user = request.auth["user"]
-    command_delete_project(user=user, project_id=id)
+    commands.delete_project(user=user, project_id=id)
 
     return 204, None

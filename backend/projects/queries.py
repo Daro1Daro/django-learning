@@ -7,13 +7,13 @@ from .models import Project, Task
 from .exceptions import ProjectPermissionDenied
 
 
-def query_get_user_projects(user: User):
+def get_user_projects(user: User):
     return get_objects_for_user(
         user=user, perms=Permissions.VIEW, klass=Project, with_superuser=True
     )
 
 
-def query_get_project(user: User, project_id: int) -> Project:
+def get_project(user: User, project_id: int) -> Project:
     project: Project = get_object_or_404(Project, id=project_id)
 
     if not user.has_perm(perm=Permissions.VIEW, obj=project):
@@ -22,8 +22,10 @@ def query_get_project(user: User, project_id: int) -> Project:
     return project
 
 
-def query_get_task(user: User, task_id: int) -> Task:
-    task: Task = get_object_or_404(Task, id=task_id)
+def get_task(user: User, task_id: int) -> Task:
+    task: Task = get_object_or_404(
+        Task.objects.prefetch_related("attachments"), id=task_id
+    )
 
     if not (
         user.has_perm(Permissions.VIEW, task)
@@ -34,5 +36,9 @@ def query_get_task(user: User, task_id: int) -> Task:
     return task
 
 
-def query_get_tasks(user: User):
-    return get_objects_for_user(user=user, perms=Permissions.VIEW, klass=Task)
+def get_tasks(user: User) -> list[Task]:
+    return get_objects_for_user(
+        user=user,
+        perms=Permissions.VIEW,
+        klass=Task.objects.prefetch_related("attachments"),
+    )
