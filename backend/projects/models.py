@@ -1,4 +1,3 @@
-from enum import StrEnum
 from datetime import timedelta
 
 from django.db import models
@@ -10,13 +9,6 @@ from django.utils.timezone import now
 from permissions.permissions import Permissions
 
 User = get_user_model()
-
-
-class StatusChoice(StrEnum):
-    TO_DO = "TD"
-    IN_PROGRESS = "IP"
-    REVIEW = "RE"
-    DONE = "DN"
 
 
 class Project(models.Model):
@@ -46,22 +38,23 @@ class TaskReadModel(QuerySet):
         return self.filter(
             due_date__lte=soon,
             due_date__gte=now(),
-        ).exclude(status=StatusChoice.DONE)
+        ).exclude(status=Task.StatusChoice.DONE.value)
 
     def get_overdue(self: QuerySet["Task"]) -> QuerySet["Task"]:
-        return self.filter(due_date__lte=now()).exclude(status=StatusChoice.DONE)
+        return self.filter(due_date__lte=now()).exclude(
+            status=Task.StatusChoice.DONE.value
+        )
 
 
 class Task(models.Model):
     objects = models.Manager()
     read_model = TaskReadModel.as_manager()
 
-    STATUS_CHOICES = {
-        StatusChoice.TO_DO: "TO DO",
-        StatusChoice.IN_PROGRESS: "IN PROGRESS",
-        StatusChoice.REVIEW: "REVIEW",
-        StatusChoice.DONE: "DONE",
-    }
+    class StatusChoice(models.IntegerChoices):
+        TO_DO = 1, "To do"
+        IN_PROGRESS = 2, "In progress"
+        REVIEW = 3, "Review"
+        DONE = 4, "Done"
 
     title = models.CharField(max_length=255)
     description = models.TextField(max_length=10000, blank=True, null=True)
@@ -73,10 +66,9 @@ class Task(models.Model):
         null=True,
         blank=True,
     )
-    status = models.CharField(
-        max_length=2,
-        choices=STATUS_CHOICES,
-        default=StatusChoice.TO_DO,
+    status = models.IntegerField(
+        choices=StatusChoice.choices,
+        default=StatusChoice.TO_DO.value,
     )
     due_date = models.DateTimeField()
     created_by = models.ForeignKey(

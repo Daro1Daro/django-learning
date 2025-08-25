@@ -5,7 +5,7 @@ from .models import User
 from .exceptions import InvalidActivationToken
 
 
-def command_activate_user_account(user: User, token: str):
+def activate_user_account(user: User, token: str):
     if default_token_generator.check_token(user, token):
         user.is_active = True
         user.save()
@@ -13,7 +13,7 @@ def command_activate_user_account(user: User, token: str):
         raise InvalidActivationToken
 
 
-def command_create_user(email: str, password: str) -> User:
+def create_user(email: str, password: str) -> User:
     if User.objects.filter(email=email).exists():
         raise HttpError(400, "Email already in use.")
 

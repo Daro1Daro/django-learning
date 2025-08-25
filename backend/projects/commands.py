@@ -6,7 +6,7 @@ from ninja import File
 from ninja.files import UploadedFile
 
 from users.models import User
-from users.queries import query_get_user_by_id
+from users.queries import get_user_by_id
 from permissions.permissions import (
     Permissions,
     assign_standard_permissions,
@@ -15,12 +15,12 @@ from permissions.permissions import (
     assign_task_assignee_permissions,
     remove_task_assignee_permissions,
 )
-from .models import Project, Task, StatusChoice, TaskAttachment
-from .queries import query_get_project, query_get_task
+from .models import Project, Task, TaskAttachment
+from .queries import get_project, get_task
 from .exceptions import ProjectPermissionDenied
 
 
-def command_create_project(user: User, name: str, member_ids: set[int]) -> Project:
+def create_project(user: User, name: str, member_ids: set[int]) -> Project:
     project: Project = Project.objects.create(owner=user, name=name)
 
     # TODO: check if members exist
@@ -36,10 +36,10 @@ def command_create_project(user: User, name: str, member_ids: set[int]) -> Proje
     return project
 
 
-def command_update_project(
+def update_project(
     user: User, project_id: int, name: str, member_ids: set[int]
 ) -> Project:
-    project: Project = query_get_project(user=user, project_id=project_id)
+    project: Project = get_project(user=user, project_id=project_id)
 
     if not user.has_perm(perm=Permissions.UPDATE, obj=project):
         raise ProjectPermissionDenied
@@ -62,8 +62,8 @@ def command_update_project(
     return project
 
 
-def command_delete_project(user: User, project_id: int):
-    project: Project = query_get_project(user=user, project_id=project_id)
+def delete_project(user: User, project_id: int):
+    project: Project = get_project(user=user, project_id=project_id)
 
     if not user.has_perm(perm=Permissions.DELETE, obj=project):
         raise ProjectPermissionDenied
@@ -71,16 +71,16 @@ def command_delete_project(user: User, project_id: int):
     project.delete()
 
 
-def command_create_task(
+def create_task(
     user: User,
     project_id: int,
     title: str,
     description: str,
-    status: StatusChoice,
+    status: Task.StatusChoice,
     assignee_id: Optional[int] = None,
     due_date: Optional[datetime] = None,
 ) -> Task:
-    project: Project = query_get_project(user=user, project_id=project_id)
+    project: Project = get_project(user=user, project_id=project_id)
 
     if not (
         user.has_perm(Permissions.UPDATE, project)
@@ -94,7 +94,7 @@ def command_create_task(
         title=title,
         description=description,
         status=status,
-        assignee=query_get_user_by_id(uid=assignee_id) if assignee_id else None,
+        assignee=get_user_by_id(uid=assignee_id) if assignee_id else None,
         due_date=due_date,
     )
 
@@ -109,16 +109,16 @@ def command_create_task(
     return task
 
 
-def command_update_task(
+def update_task(
     user: User,
     task_id: int,
     title: str,
     description: str,
-    status: StatusChoice,
+    status: Task.StatusChoice,
     assignee_id: Optional[int] = None,
     due_date: Optional[datetime] = None,
 ) -> Task:
-    task: Task = query_get_task(user=user, task_id=task_id)
+    task: Task = get_task(user=user, task_id=task_id)
     if not (
         user.has_perm(Permissions.UPDATE, task)
         or user.has_perm(Permissions.MANAGE_TASKS, task.project)
@@ -136,7 +136,7 @@ def command_update_task(
     task.description = description
     task.status = status
     task.due_date = due_date
-    task.assignee = query_get_user_by_id(uid=assignee_id) if assignee_id else None
+    task.assignee = get_user_by_id(uid=assignee_id) if assignee_id else None
 
     task.full_clean()
     task.save()
@@ -147,8 +147,8 @@ def command_update_task(
     return task
 
 
-def command_delete_task(user: User, task_id: int):
-    task: Task = query_get_task(user=user, task_id=task_id)
+def delete_task(user: User, task_id: int):
+    task: Task = get_task(user=user, task_id=task_id)
 
     if not (
         user.has_perm(Permissions.DELETE, task)
@@ -159,5 +159,5 @@ def command_delete_task(user: User, task_id: int):
     task.delete()
 
 
-def command_create_task_attachment(file: File[UploadedFile], task: Task):
+def create_task_attachment(file: File[UploadedFile], task: Task):
     TaskAttachment.objects.create(task=task, file=file)
