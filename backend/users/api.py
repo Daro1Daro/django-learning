@@ -8,8 +8,8 @@ from ninja import Router, Schema
 from ninja.errors import HttpError
 
 from .auth_token import AuthToken
-from .queries import query_get_user_by_id
-from .commands import command_activate_user_account, command_create_user
+from .queries import get_user_by_id
+from .commands import activate_user_account, create_user
 from .exceptions import InvalidActivationToken, InvalidToken
 
 router = Router()
@@ -32,7 +32,7 @@ class RefreshResponse(Schema):
 @router.post("/register", url_name="register", auth=None)
 def register(request: HttpRequest, payload: UserInput):
     try:
-        user = command_create_user(email=payload.email, password=payload.password)
+        user = create_user(email=payload.email, password=payload.password)
     except (TypeError, ValueError):
         raise HttpError(400, "User creation failed.")
 
@@ -53,12 +53,12 @@ def register(request: HttpRequest, payload: UserInput):
 
 @router.get("/activate/{uid}/{token}", url_name="activate", auth=None)
 def activate_account(request: HttpRequest, uid: int, token: str):
-    user = query_get_user_by_id(uid=uid)
+    user = get_user_by_id(uid=uid)
     if user.is_active:
         return {"detail": "Account is already active."}
 
     try:
-        command_activate_user_account(user=user, token=token)
+        activate_user_account(user=user, token=token)
     except InvalidActivationToken:
         raise HttpError(401, "Invalid or expired token.")
 
@@ -97,7 +97,7 @@ def refresh_token(request: HttpRequest, response: HttpResponse):
     if AuthToken.is_token_blacklisted(refresh_token):
         raise InvalidToken
 
-    user = query_get_user_by_id(uid=payload["uid"])
+    user = get_user_by_id(uid=payload["uid"])
     new_tokens = AuthToken.create_tokens(user.id)
 
     response.set_cookie(
