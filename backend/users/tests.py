@@ -339,21 +339,21 @@ class LogoutViewTests(TestCase):
 
 class CreateUserCommandTests(TestCase):
     def test_user_is_created(self):
-        EMAIL = "test@email.com"
+        email = "test@email.com"
 
-        created_user = command_create_user(email=EMAIL, password="pass")
-        user = User.objects.get(email=EMAIL)
+        created_user = command_create_user(email=email, password="pass")
+        user = User.objects.get(email=email)
 
         self.assertEqual(created_user, user)
 
     def test_throws_exception_if_email_already_exists(self):
-        EMAIL = "existing@email.com"
-        PASSWORD = "pass"
+        email = "existing@email.com"
+        password = "pass"
 
-        create_user(email=EMAIL, password=PASSWORD)
+        create_user(email=email, password=password)
 
         with self.assertRaises(HttpError):
-            command_create_user(email=EMAIL, password="pass")
+            command_create_user(email=email, password="pass")
 
 
 class ActivateUserCommandTests(TestCase):
