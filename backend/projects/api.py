@@ -37,7 +37,7 @@ def validate_task_attachment_type(file: File[UploadedFile]):
 
 class ProjectInput(Schema):
     name: str = Field(max_length=255)
-    member_ids: List[int]
+    member_ids: set[int]
 
 
 class TaskInput(Schema):
@@ -57,7 +57,7 @@ class ProjectOutput(Schema):
     id: int
     name: str
     owner_id: int
-    members: List[UserOutput]
+    members: list[UserOutput]
     created_at: datetime
 
 

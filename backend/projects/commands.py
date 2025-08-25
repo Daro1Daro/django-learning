@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 from datetime import datetime
 
 from guardian.shortcuts import assign_perm
@@ -20,7 +20,7 @@ from .queries import query_get_project, query_get_task
 from .exceptions import ProjectPermissionDenied
 
 
-def command_create_project(user: User, name: str, member_ids: List[int]) -> Project:
+def command_create_project(user: User, name: str, member_ids: set[int]) -> Project:
     project: Project = Project.objects.create(owner=user, name=name)
 
     # TODO: check if members exist
@@ -37,7 +37,7 @@ def command_create_project(user: User, name: str, member_ids: List[int]) -> Proj
 
 
 def command_update_project(
-    user: User, project_id: int, name: str, member_ids: List[int]
+    user: User, project_id: int, name: str, member_ids: set[int]
 ) -> Project:
     project: Project = query_get_project(user=user, project_id=project_id)
 

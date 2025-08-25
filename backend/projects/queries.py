@@ -10,7 +10,6 @@ from .exceptions import ProjectPermissionDenied
 
 
 def query_get_user_projects(user: User):
-    # return Project.objects.filter(Q(owner__id=uid) | Q(members__id=uid)).distinct()
     return get_objects_for_user(
         user=user, perms=Permissions.VIEW, klass=Project, with_superuser=True
     )
