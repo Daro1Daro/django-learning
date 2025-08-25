@@ -6,9 +6,10 @@ from configurations import Configuration
 from .configurations.mailhog import MailHogConfig
 from .configurations.pyjwt import PyJWTConfig
 from .configurations.redis import RedisConfig
+from .configurations.celery import CeleryConfig
 
 
-class Base(MailHogConfig, PyJWTConfig, RedisConfig, Configuration):
+class Base(MailHogConfig, PyJWTConfig, RedisConfig, CeleryConfig, Configuration):
     BASE_DIR = Path(__file__).resolve().parent.parent
 
     SECRET_KEY = getenv("DJANGO_SECRET_KEY", "secret")
@@ -26,6 +27,7 @@ class Base(MailHogConfig, PyJWTConfig, RedisConfig, Configuration):
         "django.contrib.staticfiles",
         "ninja",
         "guardian",
+        "django_celery_beat",
         "users",
         "projects",
         "permissions",
@@ -102,7 +104,7 @@ class Base(MailHogConfig, PyJWTConfig, RedisConfig, Configuration):
 
     LANGUAGE_CODE = "en-us"
 
-    TIME_ZONE = "UTC"
+    TIME_ZONE = "Europe/Warsaw"
 
     USE_I18N = True
 

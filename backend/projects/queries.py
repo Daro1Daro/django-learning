@@ -1,3 +1,5 @@
+from typing import List
+
 from django.shortcuts import get_object_or_404
 from guardian.shortcuts import get_objects_for_user
 
@@ -34,5 +36,5 @@ def query_get_task(user: User, task_id: int) -> Task:
     return task
 
 
-def query_get_tasks(user: User):
+def query_get_tasks(user: User) -> List[Task]:
     return get_objects_for_user(user=user, perms=Permissions.VIEW, klass=Task)

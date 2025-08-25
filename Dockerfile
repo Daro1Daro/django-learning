@@ -15,16 +15,23 @@ COPY uv.lock pyproject.toml /app/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
+COPY ./scripts/ ./scripts 
+RUN find ./scripts -type f -exec sed -i 's/\r$//g' {} \;
+RUN find ./scripts/ -type f -exec chmod +x {} \;
+
 FROM python:3.12-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PATH="/app/venv/bin:$PATH"
 
+WORKDIR /app
+
 RUN groupadd -r app && useradd -r -g app app
 
-COPY --chown=app:app --from=builder /app/venv /app/venv
-COPY --chown=app:app . /app/
+COPY --chown=app:app --from=builder /app/venv ./venv
+COPY --chown=app:app --from=builder /app/scripts ./scripts
+COPY --chown=app:app ./backend/ .
 
 USER app
-CMD ["python", "-u", "app/manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["python", "-u", "manage.py", "runserver", "0.0.0.0:8000"]
