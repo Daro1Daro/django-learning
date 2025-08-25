@@ -11,7 +11,7 @@ from .configurations.redis import RedisConfig
 class Base(MailHogConfig, PyJWTConfig, RedisConfig, Configuration):
     BASE_DIR = Path(__file__).resolve().parent.parent
 
-    SECRET_KEY = getenv("DJANGO_SECRET_KEY")
+    SECRET_KEY = getenv("DJANGO_SECRET_KEY", "secret")
 
     ALLOWED_HOSTS = []
 
@@ -25,7 +25,10 @@ class Base(MailHogConfig, PyJWTConfig, RedisConfig, Configuration):
         "django.contrib.messages",
         "django.contrib.staticfiles",
         "ninja",
+        "guardian",
         "users",
+        "projects",
+        "permissions",
     ]
 
     MIDDLEWARE = [
@@ -57,17 +60,22 @@ class Base(MailHogConfig, PyJWTConfig, RedisConfig, Configuration):
 
     WSGI_APPLICATION = "app.wsgi.application"
 
+    AUTHENTICATION_BACKENDS = (
+        "django.contrib.auth.backends.ModelBackend",
+        "guardian.backends.ObjectPermissionBackend",
+    )
+
     # Database
     # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": getenv("POSTGRES_DB"),
-            "USER": getenv("POSTGRES_USER"),
-            "PASSWORD": getenv("POSTGRES_PASSWORD"),
-            "HOST": "db",
-            "PORT": "5432",
+            "NAME": getenv("POSTGRES_DB", "django_db"),
+            "USER": getenv("POSTGRES_USER", "django_user"),
+            "PASSWORD": getenv("POSTGRES_PASSWORD", "django_password"),
+            "HOST": getenv("POSTGRES_HOST", "127.0.0.1"),
+            "PORT": getenv("POSTGRES_PORT", "5432"),
         }
     }
 
@@ -122,6 +130,3 @@ class Tests(Base):
             "NAME": "testdatabase",
         }
     }
-
-    SECRET_KEY = "secret"
-    JWT_SECRET = "jwt_secret"

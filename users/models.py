@@ -1,9 +1,16 @@
 from django.db import models
+from django.db.models.query import QuerySet
+from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import (
     AbstractBaseUser,
     PermissionsMixin,
     BaseUserManager,
 )
+
+
+class UserReadModel(QuerySet):
+    def get_by_id(self: QuerySet["User"], id: int) -> "User":
+        return get_object_or_404(self, id=id)
 
 
 class UserManager(BaseUserManager):
@@ -29,13 +36,15 @@ class UserManager(BaseUserManager):
         return user
 
 
+# TODO: add groups with permissions
 class User(AbstractBaseUser, PermissionsMixin):
+    objects = UserManager()
+    read_model = UserReadModel.as_manager()
+
     email = models.EmailField(unique=True)
     is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
-
-    objects = UserManager()
 
     USERNAME_FIELD = "email"
 
